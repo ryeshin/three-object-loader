@@ -19,6 +19,8 @@ module.exports = function (THREE) {
     this.regexp = {
       // v float float float
       vertex_pattern: /^v\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)/,
+      // v float float float float float float (vertex with rgb) 
+      vertex_colour_pattern: /^v\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)/,
       // vn float float float
       normal_pattern: /^vn\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)\s+([\d|\.|\+|\-|e|E]+)/,
       // vt float float
@@ -81,6 +83,7 @@ module.exports = function (THREE) {
         object: {},
 
         vertices: [],
+        vertexColors: [],
         normals: [],
         uvs: [],
 
@@ -112,6 +115,7 @@ module.exports = function (THREE) {
 
             geometry: {
               vertices: [],
+              colors: [],
               normals: [],
               uvs: []
             },
@@ -286,6 +290,23 @@ module.exports = function (THREE) {
 
         },
 
+        addColor: function (a, b, c) {
+
+          var src = this.vertexColors;
+          var dst = this.object.geometry.colors;
+
+          dst.push(src[a + 0]);
+          dst.push(src[a + 1]);
+          dst.push(src[a + 2]);
+          dst.push(src[b + 0]);
+          dst.push(src[b + 1]);
+          dst.push(src[b + 2]);
+          dst.push(src[c + 0]);
+          dst.push(src[c + 1]);
+          dst.push(src[c + 2]);
+
+        },
+
         addNormal: function (a, b, c) {
 
           var src = this.normals;
@@ -340,12 +361,25 @@ module.exports = function (THREE) {
 
             this.addVertex(ia, ib, ic);
 
+            if (this.vertexColors.length > 0) {
+
+              this.addColor(ia, ib, ic);
+
+            }
+
           } else {
 
             id = this.parseVertexIndex(d, vLen);
 
             this.addVertex(ia, ib, id);
             this.addVertex(ib, ic, id);
+
+            if (this.vertexColors.length > 0) {
+
+              this.addColor(ia, ib, id);
+              this.addColor(ib, ic, id);
+
+            }
 
           }
 
@@ -479,16 +513,36 @@ module.exports = function (THREE) {
 
           lineSecondChar = line.charAt(1);
 
-          if (lineSecondChar === ' ' && (result = this.regexp.vertex_pattern.exec(line)) !== null) {
+          if (lineSecondChar === ' ') {
 
-            // 0                  1      2      3
-            // ["v 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
+            if ((result = this.regexp.vertex_colour_pattern.exec(line)) !== null) {
 
-            state.vertices.push(
-              parseFloat(result[1]),
-              parseFloat(result[2]),
-              parseFloat(result[3])
-            );
+              // 0                             1      2      3      4      5      6
+              // ["v 1.0 2.0 3.0 0.1 0.2 0.3", "1.0", "2.0", "3.0", "0.1", "0.2", "0.3"]
+
+              state.vertices.push(
+                parseFloat(result[1]),
+                parseFloat(result[2]),
+                parseFloat(result[3])
+              );
+              state.vertexColors.push(
+                parseFloat(result[4]),
+                parseFloat(result[5]),
+                parseFloat(result[6])
+              );
+
+            } else if ((result = this.regexp.vertex_pattern.exec(line)) !== null) {
+
+              // 0                  1      2      3
+              // ["v 1.0 2.0 3.0", "1.0", "2.0", "3.0"]
+
+              state.vertices.push(
+                parseFloat(result[1]),
+                parseFloat(result[2]),
+                parseFloat(result[3])
+              );
+
+            }
 
           } else if (lineSecondChar === 'n' && (result = this.regexp.normal_pattern.exec(line)) !== null) {
 
@@ -667,6 +721,12 @@ module.exports = function (THREE) {
         var buffergeometry = new THREE.BufferGeometry();
 
         buffergeometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(geometry.vertices), 3));
+
+        if (geometry.colors.length > 0) {
+
+          buffergeometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(geometry.colors), 3));
+
+        }
 
         if (geometry.normals.length > 0) {
 
