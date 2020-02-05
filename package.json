@@ -6,7 +6,7 @@
   "scripts": {
     "test": "gulp test",
     "compile": "gulp build",
-    "prepublish": "npm run compile"
+    "prepare": "npm run compile"
   },
   "repository": "sohamkamani/three-object-loader",
   "author": {
